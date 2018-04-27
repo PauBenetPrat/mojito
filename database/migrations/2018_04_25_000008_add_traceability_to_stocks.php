@@ -15,8 +15,9 @@ class AddTraceAbilityToStocks extends Migration
         Schema::create('lots', function (Blueprint $table) {
             $table->increments('id');
 
-            $table->datetime("expiration_date")->nullable();
+            $table->string('number');
             $table->integer("stock_id")->unsigned();
+            $table->datetime("expiration_date")->nullable();
 
             $table->foreign('stock_id')->references('id')->on('stocks')->onDelete('cascade');
 
@@ -26,14 +27,15 @@ class AddTraceAbilityToStocks extends Migration
 
         Schema::create('serial_numbers', function (Blueprint $table) {
             $table->increments('id');
-            $table->datetime("expiration_date")->nullable();
             $table->integer("stock_id")->unsigned();
-            $table->integer("serial_number")->unsigned()->nullable();
-            $table->integer("product_id")->unsigned();// needed?
+            $table->integer("serial_number")->unsigned();
+            $table->integer("lot_id")->unsigned()->nullable();
+            $table->integer("item_id")->unsigned();
             $table->integer("purchase_order_content_id")->unsigned()->nullable();
 
             $table->foreign('stock_id')->references('id')->on('stocks')->onDelete('cascade');
-            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+            $table->foreign('lot_id')->references('id')->on('lots')->onDelete('cascade');
+            $table->foreign('item_id')->references('id')->on(config('mojito.itemsTable'))->onDelete('cascade');
             $table->foreign('purchase_order_content_id')->references('id')->on('purchase_order_contents')->onDelete('cascade');
 
             $table->timestamps();

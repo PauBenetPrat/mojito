@@ -12,10 +12,10 @@ class Traceability
     public static function all()
     {
         return collect([
-            static::TRACEABILITY_NONE                       => __("admin.traceabilityNone"),
-            static::TRACEABILITY_LOTS                       => __("admin.traceabilityLots"),
-            static::TRACEABILITY_SERIAL_NUMBERS             => __("admin.traceabilitySerialNumbers"),
-            static::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS   => __("admin.traceabilityLotsWithSerialNumbers"),
+            static::TRACEABILITY_NONE                       => trans_choice("admin.none", 1),
+            static::TRACEABILITY_LOTS                       => trans_choice("admin.lot", 2),
+            static::TRACEABILITY_SERIAL_NUMBERS             => trans_choice("admin.serialNumber", 2),
+            static::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS   => trans_choice("admin.lotsWithSerialNumbers", 1),
         ]);
     }
 

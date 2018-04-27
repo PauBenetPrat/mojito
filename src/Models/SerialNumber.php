@@ -26,4 +26,22 @@ class SerialNumber extends Model
         }
         return $query->join('stocks', 'stocks.id', '=', 'serial_numbers.stock_id');
     }
+
+    protected function joinWithLots($query)
+    {
+        if ($this->alreadyJoinedWith($query, 'lots')) {
+            return $query;
+        }
+        return $query->join('lots', 'lots.stock_id', '=', 'stocks.id');
+    }
+
+    public function scopeByLot($query, $lotId)
+    {
+        if (! $lotId) {
+            return $query;
+        }
+        $query = $this->joinWithStocks($query);
+        $query = $this->joinWithLots($query);
+        return $query->where('lot_id', $lotId);
+    }
 }

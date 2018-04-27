@@ -39,6 +39,14 @@ class Stock extends Model{
         return $this->belongsTo('BadChoice\Mojito\Models\Unit');
     }
 
+    public function serialNumbers(){
+        return $this->hasMany('BadChoice\Mojito\Models\SerialNumber');
+    }
+
+    public function lots(){
+        return $this->hasMany('BadChoice\Mojito\Models\Lot');
+    }
+
     //============================================================================
     // SCOPES
     //============================================================================
