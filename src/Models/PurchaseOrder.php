@@ -170,6 +170,12 @@ class PurchaseOrder extends Model
         return $this->status == PurchaseOrderContent::STATUS_PENDING;
     }
 
+    public function isReceivable()
+    {
+        return ! $this->contents->contains(function ($content) {
+            return $content->item()->traceability != Traceability::TRACEABILITY_NONE && $content->quantity > $content->received;
+        });
+    }
     public function send()
     {
     }

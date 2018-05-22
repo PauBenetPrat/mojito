@@ -18,15 +18,4 @@ class Traceability
             static::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS   => trans_choice("admin.lotsWithSerialNumbers", 1),
         ]);
     }
-
-    public static function usesLots($traceability)
-    {
-        return $traceability == Traceability::TRACEABILITY_LOTS || $traceability == Traceability::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS;
-    }
-
-    public static function usesSerialNumbers($traceability)
-    {
-        return $traceability == Traceability::TRACEABILITY_SERIAL_NUMBERS || $traceability == Traceability::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS;
-    }
-
 }

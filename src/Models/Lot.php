@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Lot extends Model
 {
-    use TraceabilityTrait;
     use SoftDeletes;
 
     protected $table    = "lots";
@@ -17,13 +16,5 @@ class Lot extends Model
     public function stocks()
     {
         return $this->belongsTo(Stock::class);
-    }
-
-    protected function joinWithStocks($query)
-    {
-        if ($this->alreadyJoinedWith($query, 'stocks')) {
-            return $query;
-        }
-        return $query->join('stocks', 'stocks.id', '=', 'lots.stock_id');
     }
 }

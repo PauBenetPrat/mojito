@@ -2,6 +2,7 @@
 
 namespace BadChoice\Mojito\Models;
 
+use App\Exceptions\DuplicatedSerialNumberException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use BadChoice\Grog\Traits\SyncTrait;
@@ -74,6 +75,36 @@ class Stock extends Model
     //============================================================================
     // METHODS
     //============================================================================
+    public function addLot($lotNumber, $quantity, $expirationDate = null)
+    {
+        $lot = $this->lots()->firstOrCreate([
+            "lot_number"        => $lotNumber,
+            "item_id"           => $this->item_id,
+        ], [
+            "expiration_date"   => $expirationDate,
+        ]);
+        $lot->increment("quantity", $quantity);
+        $this->increment('quantity', $quantity);
+        return $lot;
+    }
+
+    public function addSerialNumbers($serialNumbers, $lotNumber = null)
+    {
+        $this->validateNotDuplicatedSerialNumbers($serialNumbers);
+        $lot = $lotNumber ? $this->addLot($lotNumber, count($serialNumbers)) : null;
+        $serialNumbers = $this->serialNumbers()->createMany(collect($serialNumbers)->map(function ($serialNumber) use ($lot) {
+            return [
+                "serial_number" => $serialNumber,
+                "item_id"       => $this->item_id,
+                "lot_id"        => $lot->id ?? null,
+            ];
+        })->toArray());
+        if (! $lot) {
+            $this->increment('quantity', $serialNumbers->count());
+        }
+        return $serialNumbers;
+    }
+
     public function toRefill()
     {
         return $this->defaultQuantity - $this->quantity;
@@ -82,5 +113,15 @@ class Stock extends Model
     public static function softDelete($item_id, $warehouse_id)
     {
         static::findWith($item_id, $warehouse_id)->delete();
+    }
+
+    protected function validateNotDuplicatedSerialNumbers($serialNumbers)
+    {
+        if (count($serialNumbers) != count(array_unique($serialNumbers))) {
+            throw new DuplicatedSerialNumberException;
+        }
+        if ($this->item->serialNumbers()->whereIn('serial_number', $serialNumbers)->count() > 0) {
+            throw new DuplicatedSerialNumberException;
+        }
     }
 }

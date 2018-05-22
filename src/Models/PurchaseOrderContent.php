@@ -9,10 +9,12 @@ class PurchaseOrderContent extends Model
 {
     use SoftDeletes;
 
-    protected $table    = "purchase_order_contents";
-    protected $guarded  = ['id'];
-    protected $appends  = ['itemName', 'itemBarcode'];
-    protected $hidden   = ['item', 'vendorItem'];
+    protected $table            = "purchase_order_contents";
+    protected $guarded          = ['id'];
+    protected $appends          = ['itemName', 'itemBarcode'];
+    protected $hidden           = ['item', 'vendorItem'];
+    protected $serialNumbers    = [];
+    protected $lot              = null;
 
     const STATUS_PENDING            = 0;
     const STATUS_SENT               = 1;
@@ -74,11 +76,25 @@ class PurchaseOrderContent extends Model
     //============================================================================
     // METHODS
     //============================================================================
+//    public function addLot($lotNumber, $expirationDate = null)
+//    {
+//        $this->lot = new Lot(["number" => $lotNumber, "expiration_date" => $expirationDate]);
+//        return $this;
+//    }
+//
+//    public function addSerialNumber($serialNumber)
+//    {
+//        array_push($this->serialNumbers, new SerialNumber(["serial_number" => $serialNumber]));
+//        return $this;
+//    }
+//
     public function receive($quantity, $warehouseId)
     {
         $warehouse  = Warehouse::find($warehouseId);
-        $warehouse->add($this->vendorItem->item_id, $quantity, $this->vendorItem->unit_id);
+        $stock      = $warehouse->add($this->vendorItem->item_id, $quantity, $this->vendorItem->unit_id);
 
+        $this->receiveLots($stock, $warehouse);
+        $this->receiveSerialNumbers($stock, $warehouse);
         $totalReceived = $this->received + $quantity;
         $status        = static::STATUS_PENDING;
 
@@ -93,6 +109,28 @@ class PurchaseOrderContent extends Model
             'received' => $totalReceived,
             'status'   => $status,
         ]);
+    }
+
+    protected function receiveLots($stock, $warehouse)
+    {
+        if (! $this->lot) {
+            return false;
+        }
+        $this->lot = $this->lot->add($this->vendorItem->item_id, $stock->id);
+        PurchaseOrderContentLot::firstOrCreate([
+            "purchase_order_content_id" => $this->id,
+            "lot_id"                    => $this->lot->id,
+        ]);
+    }
+
+    protected function receiveSerialNumbers($stock, $warehouse)
+    {
+        if (! $this->serialNumbers) {
+            return false;
+        }
+        collect($this->serialNumbers)->each(function ($serialNumber) use ($stock) {
+            $serialNumber->add($this->vendorItem->item_id, $stock->id, $this->lot);
+        });
     }
 
     public function statusName()

@@ -2,40 +2,42 @@
 
 namespace BadChoice\Mojito\Traits;
 
+use App\Models\Catalog\Product;
+use BadChoice\Mojito\Models\Lot;
+use BadChoice\Mojito\Models\SerialNumber;
+use BadChoice\Mojito\Models\Traceability;
+use Illuminate\Support\Facades\DB;
+
 trait TraceabilityTrait
 {
-    public function scopeByItem($query, $itemId)
+
+    public function lots()
     {
-        $query = $this->joinWithStocks($query);
-        $query = $this->joinWithItems($query);
-        if (! $itemId) {
-            return $query;
-        }
-        return $query->where('item_id', $itemId);
+        return $this->hasMany(Lot::class, 'item_id')->groupBy('lot_number')->addSelect(DB::raw('SUM(quantity) as quantity'));
     }
 
-    public function scopeByWarehouse($query, $warehouseId)
+    public function serialNumbers()
     {
-        $query = $this->joinWithStocks($query);
-        if (! $warehouseId) {
-            return $query;
-        }
-        return $query->where('warehouse_id', $warehouseId);
+        return $this->hasMany(SerialNumber::class, 'item_id');
     }
 
-    abstract protected function joinWithStocks($query);
-
-    private function joinWithItems($query)
+    public function lotQuantity($lotNumber)
     {
-        if ($this->alreadyJoinedWith($query, config('mojito.itemsTable'))) {
-            return $query;
-        }
-        return $query->join(config('mojito.itemsTable'), config('mojito.itemsTable') . '.id', '=', 'stocks.item_id');
+        return $this->lots()->where('lot_number', $lotNumber)->sum('quantity');
     }
 
-    public function alreadyJoinedWith($query, $table)
+    /*public function usesLots()
     {
-        $query = $query->getQuery();
-        return $query->from == $table || (collect($query->joins)->pluck('table')->contains($table));
+        return $this->traceability == Traceability::TRACEABILITY_LOTS || $this->traceability == Traceability::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS;
     }
+
+    public function usesSerialNumbers()
+    {
+        return $this->traceability == Traceability::TRACEABILITY_SERIAL_NUMBERS || $this->traceability == Traceability::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS;
+    }
+
+    public function usesLotsWithSerialNumbers()
+    {
+        return $this->traceability == Traceability::TRACEABILITY_LOTS_WITH_SERIAL_NUMBERS;
+    }*/
 }

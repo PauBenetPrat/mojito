@@ -83,27 +83,23 @@ class Warehouse extends Model
      * @param $itemId
      * @param $qty
      * @param $unit_id to to the conversion
-     * @return bool if can be added
      */
     public function add($itemId, $qty, $unit_id = null)
     {
         $stockClass = config('mojito.stockClass', 'Stock');
         $pivot      = $stockClass::where('warehouse_id', '=', $this->id)->where('item_id', '=', $itemId)->first();
 
-        if ($pivot == null) {
+        if (! $pivot ) {
             $this->setInventory($itemId, $qty, $unit_id);
-        } else {
-            $qty    = Unit::convert($qty, $unit_id, $pivot->unit_id);
-            $pivot->update(["quantity" => $pivot->quantity + $qty]);
-            StockMovement::create([
-                'item_id'           => $itemId,
-                'to_warehouse_id'   => $this->id,
-                'quantity'          => $qty,
-                'action'            => Warehouse::ACTION_ADD
-            ]);
-            return true;
         }
-        return false;
+        $qty    = Unit::convert($qty, $unit_id, $pivot->unit_id);
+        $pivot->update(["quantity" => $pivot->quantity + $qty]);
+        StockMovement::create([
+            'item_id'           => $itemId,
+            'to_warehouse_id'   => $this->id,
+            'quantity'          => $qty,
+            'action'            => Warehouse::ACTION_ADD
+        ]);
     }
 
     /*
@@ -191,5 +187,11 @@ class Warehouse extends Model
             'action'            => Warehouse::ACTION_SET_INVENTORY
         ]);
         return $result;
+    }
+
+    public function addLot($itemId, $lotNumber, $qty, $expirationDate = null)
+    {
+        $this->add($itemId, $qty);
+        $this->stocks()->where('item_id', $itemId)->first()->addLot($lotNumber, $qty, $expirationDate);
     }
 }

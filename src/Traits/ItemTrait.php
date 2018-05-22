@@ -3,6 +3,7 @@
 namespace BadChoice\Mojito\Traits;
 
 use BadChoice\Mojito\Models\Assembly;
+use BadChoice\Mojito\Models\Lot;
 use BadChoice\Mojito\Models\Vendor;
 use BadChoice\Mojito\Models\VendorItemPivot;
 use BadChoice\Mojito\Models\Unit;
@@ -43,6 +44,14 @@ trait ItemTrait
     public function stocks()
     {
         return $this->hasMany(config('mojito.stockClass'), 'item_id');
+    }
+
+    public function stockQuantity($warehouseId = null)
+    {
+        if (! $warehouseId) {
+            return $this->stocks()->sum('quantity');
+        }
+        return $this->stocks()->where('warehouse_id', $warehouseId)->sum('quantity');
     }
 
     public function unit()
