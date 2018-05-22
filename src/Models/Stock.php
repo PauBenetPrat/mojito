@@ -84,7 +84,7 @@ class Stock extends Model
             "expiration_date"   => $expirationDate,
         ]);
         $lot->increment("quantity", $quantity);
-        $this->increment('quantity', $quantity);
+//        $this->increment('quantity', $quantity);
         return $lot;
     }
 
@@ -99,9 +99,9 @@ class Stock extends Model
                 "lot_id"        => $lot->id ?? null,
             ];
         })->toArray());
-        if (! $lot) {
+        /*if (! $lot) {
             $this->increment('quantity', $serialNumbers->count());
-        }
+        }*/
         return $serialNumbers;
     }
 

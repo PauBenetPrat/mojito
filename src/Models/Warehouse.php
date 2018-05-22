@@ -83,14 +83,15 @@ class Warehouse extends Model
      * @param $itemId
      * @param $qty
      * @param $unit_id to to the conversion
+     * @return bool
      */
     public function add($itemId, $qty, $unit_id = null)
     {
         $stockClass = config('mojito.stockClass', 'Stock');
         $pivot      = $stockClass::where('warehouse_id', '=', $this->id)->where('item_id', '=', $itemId)->first();
 
-        if (! $pivot ) {
-            $this->setInventory($itemId, $qty, $unit_id);
+        if (! $pivot) {
+             return $this->setInventory($itemId, $qty, $unit_id);
         }
         $qty    = Unit::convert($qty, $unit_id, $pivot->unit_id);
         $pivot->update(["quantity" => $pivot->quantity + $qty]);
@@ -165,9 +166,9 @@ class Warehouse extends Model
         $pivot      = $stockClass::where('warehouse_id', '=', $this->id)->where('item_id', '=', $itemId)->first();
         $result     = false;
 
-        if($pivot == null){
-            $itemClass = config('mojito.itemClass','Item');
-            $unit_id = $unit_id ? $unit_id : $itemClass::find($itemId)->unit_id;
+        if ($pivot == null) {
+            $itemClass = config('mojito.itemClass', 'Item');
+            $unit_id   = $unit_id ? $unit_id : $itemClass::find($itemId)->unit_id;
             $stockClass::create([
                 'warehouse_id' => $this->id,
                 'item_id'      => $itemId,
@@ -192,6 +193,17 @@ class Warehouse extends Model
     public function addLot($itemId, $lotNumber, $qty, $expirationDate = null)
     {
         $this->add($itemId, $qty);
-        $this->stocks()->where('item_id', $itemId)->first()->addLot($lotNumber, $qty, $expirationDate);
+        $this->getItemStock($itemId)->addLot($lotNumber, $qty, $expirationDate);
+    }
+
+    public function addSerialNumbers($itemId, $serialNumbers, $lotNumber = null)
+    {
+        $this->add($itemId, count($serialNumbers));
+        $this->getItemStock($itemId)->addSerialNumbers($serialNumbers, $lotNumber);
+    }
+
+    private function getItemStock($itemId)
+    {
+        return $this->stocks()->where('item_id', $itemId)->where('warehouse_id', $this->id)->first();
     }
 }
