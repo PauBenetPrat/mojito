@@ -28,7 +28,7 @@ class PurchaseOrder extends Model
         $order = tap(self::create(compact('vendor_id', 'status')), function ($order) use ($items) {
             return $order->contents()->createMany(collect($items)->map(function ($item) use ($order) {
                 return (new PurchaseOrderContent([
-                    'status'         => $order->status,
+                    'status'         => static::getContentStatus($item, $order->status),
                     'price'          => $item->costPrice,
                     'quantity'       => $item->quantity,
                     'item_vendor_id' => $item->pivot_id,
@@ -55,7 +55,7 @@ class PurchaseOrder extends Model
                 'order_id'       => $order->id,
                 'item_vendor_id' => $item->pivot_id,
             ], [
-                'status'   => $order->status,
+                'status'   => static::getContentStatus($item, $order->status),
                 'price'    => $item->costPrice,
                 'quantity' => $item->quantity,
             ]);
@@ -64,6 +64,17 @@ class PurchaseOrder extends Model
             $order->send();
         }
         return $order;
+    }
+
+    public static function getContentStatus($item, $orderStatus)
+    {
+        if ($orderStatus != PurchaseOrderContent::STATUS_PENDING) {
+            return $orderStatus;
+        }
+        if ($item->quantity < 0) {
+            return PurchaseOrderContent::STATUS_REFUND_PENDING ;
+        }
+        return $orderStatus;
     }
 
     public function delete()
@@ -139,8 +150,8 @@ class PurchaseOrder extends Model
      */
     public function calculateStatus()
     {
-        $total          = $this->contents->sum('quantity');
-        $received       = $this->contents->sum('received');
+        $total          = $this->contents->sum(function ($content) { return abs($content->quantity); });
+        $received       = $this->contents->sum(function ($content) { return abs($content->received); });
         $leftToReceive  = $total - $received;
 
         if ($this->status == PurchaseOrderContent::STATUS_DRAFT) {
@@ -167,7 +178,7 @@ class PurchaseOrder extends Model
 
     public function shouldBeSent()
     {
-        return $this->status == PurchaseOrderContent::STATUS_PENDING;
+        return $this->status == PurchaseOrderContent::STATUS_PENDING || $this->status == PurchaseOrderContent::STATUS_REFUND_PENDING;
     }
 
     public function send()

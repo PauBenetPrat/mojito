@@ -19,6 +19,9 @@ class PurchaseOrderContent extends Model
     const STATUS_PARTIAL_RECEIVED   = 2;
     const STATUS_RECEIVED           = 3;
     const STATUS_DRAFT              = 4;
+    const STATUS_PARTIAL_REFUNDED   = 5;
+    const STATUS_REFUND_PENDING     = 6;
+    const STATUS_REFUNDED           = 7;
 
     //============================================================================
     // REGISTER EVENT LISTENRES
@@ -79,20 +82,9 @@ class PurchaseOrderContent extends Model
         $warehouse  = Warehouse::find($warehouseId);
         $warehouse->add($this->vendorItem->item_id, $quantity, $this->vendorItem->unit_id);
 
-        $totalReceived = $this->received + $quantity;
-        $status        = static::STATUS_PENDING;
-
-        if ($totalReceived < $this->quantity) {
-            $status = static::STATUS_PARTIAL_RECEIVED;
-        }
-        if ($totalReceived >= $this->quantity) {
-            $status = static::STATUS_RECEIVED;
-        }
-
-        $this->update([
-            'received' => $totalReceived,
-            'status'   => $status,
-        ]);
+        $this->received = $this->received + $quantity;
+        $this->status = $this->calculateStatus();
+        $this->save();
     }
 
     public function statusName()
@@ -113,6 +105,9 @@ class PurchaseOrderContent extends Model
             static::STATUS_PARTIAL_RECEIVED     => __('admin.partialReceived'),
             static::STATUS_RECEIVED             => __('admin.received'),
             static::STATUS_DRAFT                => __('admin.draft'),
+            static::STATUS_REFUND_PENDING       => __('admin.refundPending'),
+            static::STATUS_PARTIAL_REFUNDED     => __('admin.partialRefunded'),
+            static::STATUS_REFUNDED             => __('admin.refunded'),
         ];
     }
 
@@ -133,15 +128,14 @@ class PurchaseOrderContent extends Model
 
     public function calculateStatus()
     {
-        $leftToReceive  = $this->quantity - $this->received;
-        if ($this->status == PurchaseOrderContent::STATUS_DRAFT) {
-            return PurchaseOrderContent::STATUS_DRAFT;
-        } elseif ($leftToReceive == 0) {
-            return PurchaseOrderContent::STATUS_RECEIVED;
-        } elseif ($leftToReceive == $this->quantity) {
-            return PurchaseOrderContent::STATUS_PENDING;
+        if ($this->status == static::STATUS_DRAFT) {
+            return static::STATUS_DRAFT;
         }
-        return PurchaseOrderContent::STATUS_PARTIAL_RECEIVED;
+        $leftToReceive = $this->quantity - $this->received;
+        if ($this->quantity < 0) {
+            return $this->calculateRefundedStatus($leftToReceive);
+        }
+        return $this->calculateReceivedStatus($leftToReceive);
     }
 
     private function adjustStock($leftToReceive, $warehouseId)
@@ -150,5 +144,23 @@ class PurchaseOrderContent extends Model
             return;
         }
         Warehouse::find($warehouseId)->add($this->vendorItem->item_id, $leftToReceive, $this->vendorItem->unit_id);
+    }
+
+    private function calculateRefundedStatus($leftToReceive) {
+        if ($leftToReceive >= 0) {
+            return static::STATUS_REFUNDED;
+        } elseif ($leftToReceive == $this->quantity) {
+            return static::STATUS_REFUND_PENDING;
+        }
+        return static::STATUS_PARTIAL_REFUNDED;
+    }
+
+    private function calculateReceivedStatus($leftToReceive) {
+        if ($leftToReceive <= 0) {
+            return static::STATUS_RECEIVED;
+        } elseif ($leftToReceive == $this->quantity) {
+            return static::STATUS_PENDING;
+        }
+        return static::STATUS_PARTIAL_RECEIVED;
     }
 }
