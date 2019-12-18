@@ -78,7 +78,7 @@ class Warehouse extends Model
         foreach ($stockClass::byWarehouse($this->id)->get() as $object) {
             $object->delete();
         }
-        return parent::delete();
+        parent::delete();
     }
 
     /**
@@ -95,11 +95,12 @@ class Warehouse extends Model
         $pivot      = $stockClass::where('warehouse_id', '=', $this->id)->where('item_id', '=', $itemId)->first();
 
         if ($pivot == null) {
-            return $this->setInventory($itemId, $qty, $unit_id);
+            $this->setInventory($itemId, $qty, $unit_id);
+            return;
         }
         $qty    = Unit::convert($qty, $unit_id, $pivot->unit_id);
         $pivot->update(["quantity" => $pivot->quantity + $qty]);
-        return StockMovement::create([
+        StockMovement::create([
             'item_id'           => $itemId,
             'to_warehouse_id'   => $this->id,
             'quantity'          => $qty,
@@ -144,7 +145,7 @@ class Warehouse extends Model
         }
         $pivotFrom->update(["quantity" => $pivotFrom->quantity - $qty]);
 
-        return StockMovement::create([
+        StockMovement::create([
             'item_id'           => $itemId,
             'from_warehouse_id' => $this->id,
             'to_warehouse_id'   => $toWarehouseId,
@@ -184,7 +185,7 @@ class Warehouse extends Model
             $pivot->update(["quantity" => $qty]);
         }
 
-        return StockMovement::create([
+        StockMovement::create([
             'item_id'           => $itemId,
             'to_warehouse_id'   => $this->id,
             'quantity'          => $qty,
