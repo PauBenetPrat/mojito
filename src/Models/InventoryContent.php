@@ -91,7 +91,10 @@ class InventoryContent extends Model
 
     protected function getModifiedQuantitySinceInventoryRegistered()
     {
-        return StockMovement::where('created_at', '>', $this->inventory->closed_at ?? $this->item->created_at)->where('item_id', $this->item_id)->sum('quantity');
+        return StockMovement::where('created_at', '>', $this->inventory->closed_at ?? $this->item->created_at)
+            ->where('action', '=!', Warehouse::ACTION_SET_INVENTORY)
+            ->where('item_id', $this->item_id)
+            ->sum('quantity');
     }
 
     protected function getLastInventory()
