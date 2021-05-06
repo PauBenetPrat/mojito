@@ -8,9 +8,9 @@
         }
     ],
     "require": {
-        "php": "^7.2.5",
-        "badchoice/grog": "^2.0.3",
-        "illuminate/database": "^7.4"
+        "php": "^7.3",
+        "paubenetprat/grog": "dev-master8",
+        "illuminate/database": "^8.40"
     },
     "autoload": {
         "psr-4": {
